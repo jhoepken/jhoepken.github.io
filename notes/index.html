@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Notes - Jens Höpken</title>
+  <meta name="author" content="Jens Höpken">
+
+  
+  <meta name="description" content="Notes This pages is inteded to store various notes, findings and misconceptions I stumbled over while working with OpenFOAM. It is mainly intended &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://jhoepken.github.io/notes">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Jens Höpken" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=Open+Sans:400,700&subset=latin" rel="stylesheet" type="text/css" />
+<link href='http://fonts.googleapis.com/css?family=Noto+Serif:400,700' rel='stylesheet' type='text/css'>
+
+
+
+  
+
+</head>
+
+<body    class="collapse-sidebar sidebar-footer" >
+  <nav id="main-nav" role="navigation">
+<ul class="main-navigation">
+  <li><a href="/" class="nav-link">Blog</a></li>
+  <li><a href="/about" class="nav-link">About</a></li>
+  <li><a href="/notes" class="nav-link">Notes</a></li>
+  <li><a href="/conduct" class="nav-link">Code of Conduct</a></li>
+  <li><a href="http://www.twitter.com/jhoepken" class="nav-link">Twitter</a></li>
+  <li><a href="http://www.github.com/jhoepken" class="nav-link">Github</a></li>
+</ul>
+
+</nav>
+  
+  <div id="main">
+    <div id="content">
+      <div>
+<article role="article">
+  
+  <header>
+    <h1 class="entry-title">Notes</h1>
+    <p class="meta">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-08-15T16:11:00+02:00" pubdate data-updated="true"></time></p>
+  </header>
+  
+  <p>This pages is inteded to store various notes, findings and misconceptions I stumbled over while working with OpenFOAM. It is mainly intended as a reminder to myself and used to live in my private wiki. I moved it out of there, because this might be of help for someone else than me. Please contact me if you consider something wrong, incomplete or missing.</p>
+
+<h2>inletOutlet vs. outletInlet</h2>
+
+<p>Both boundary conditions sound almost identical, but they are not. In fact they are acting absolutely contrary to each other. <code>inletOutlet</code> is basically a <code>fixedValue</code> boundary condition when a flux into the domain is present and a zeroGradient when the flux is pointing outwards. Though boundary conditions are applied to boundary patches, this decision is done on a face-to-face basis. This means that two adjoining boundary faces on a boundary patch might have fluxes with different signs and are hence handled differently.</p>
+
+<p>The <code>outletInlet</code> boundary condition does this decision in the same manner, but if there is an inward flux, it is a <code>zeroGradient</code> and otherwise a <code>fixedValue</code> boundary condition.</p>
+
+<p>This can be found in the sources as well. Doing a <code>vimdiff</code> of the source files of both boundary conditions and just looking for the real differences and ignoring the naming differences reveals a significant difference in the <code>updateCoeffs</code> method of both classes. This shows that both boundary conditions are the inverse of the other:</p>
+
+<pre><code>// inletOutlet
+this-&gt;valueFraction() = 1.0 - pos(phip);
+
+// outletInlet
+this-&gt;valueFraction() = pos(phip);
+</code></pre>
+
+<p>If you would like to see that in the actual source, go to <code>$FOAM_SRC/finiteVolume/fields/fvPatchFields/derived</code> and execute the following command:</p>
+
+<pre><code>vimdiff inletOutlet/inletOutletFvPatchField.C outletInlet/outletInletFvPatchField.C
+</code></pre>
+
+  
+    <footer>
+      <p class="meta">
+        
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-08-15T16:11:00+02:00" pubdate data-updated="true"></time>
+        
+      </p>
+      
+        <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://jhoepken.github.io/notes/index.html" data-via="jhoepken" data-counturl="http://jhoepken.github.io/notes/index.html" >Tweet</a>
+  
+  
+  
+</div>
+
+      
+    </footer>
+  
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Jens Höpken -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span></br>
+  <p class="credit">OpenFOAM® and OpenCFD® are registered trademarks of OpenCFD Limited, the producer OpenFOAM software. All registered trademarks are property of their
+      respective owners. This offering is not approved or endorsed by OpenCFD Limited, the producer of the OpenFOAM software and owner of the OPENFOAM® and OpenCFD® trade marks. Jens Höpken is not associated to OpenCFD.</p>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Posts | Jens Höpken]]></title>
+  <link href="http://jhoepken.github.io/blog/categories/posts/atom.xml" rel="self"/>
+  <link href="http://jhoepken.github.io/"/>
+  <updated>2014-08-16T10:16:56+02:00</updated>
+  <id>http://jhoepken.github.io/</id>
+  <author>
+    <name><![CDATA[Jens Höpken]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Building OpenFOAM-2.2.x]]></title>
+    <link href="http://jhoepken.github.io/blog/2013/03/14/building-openfoam-2.2.x/"/>
+    <updated>2013-03-14T00:00:00+01:00</updated>
+    <id>http://jhoepken.github.io/blog/2013/03/14/building-openfoam-2.2.x</id>
+    <content type="html"><![CDATA[<p>The 2.2 version of OpenFOAM was released on 6. March 2013 and after reading the changelog, I was keen to try it out.
+Especially due to the promised changes to <code>snappyHexMesh</code>.
+I tried to build the new version that is distributed via <a href="https://github.com/OpenFOAM/OpenFOAM-2.2.x">github</a> using the well known way of just changing into the <code>$WM_PROJECT_DIR</code>, executing <code>./Allwmake</code> and hoping for the best.
+Unfortunatly this didn&rsquo;t work out well, because the <code>libOpenFOAM</code> didn&rsquo;t compile properly:</p>
+
+<pre><code><div class="highlight"><pre><code class="language-bash" data-lang="bash">primitives/triad/triad.C:36: error: expected initializer before <span class="s1">&#39;&amp;lt;&#39;</span> token
+primitives/triad/triad.C:39: error: expected initializer before <span class="s1">&#39;&amp;lt;&#39;</span> token</code></pre></div>
+</code></pre>
+
+<p>After discussing this with my good friend Tomislav, he came up with a simple fix for this: Just remove the lines in <code>$FOAM_SRC/OpenFOAM/Make/files</code> that contain something with <em>triad</em> in it.
+You can either download the bugfix from <a href="https://gist.github.com/jhoepken/5186170">github</a> or generate it from scratch by commenting all lines that contain something with <em>triad</em>.</p>
+
+<p>Executing <code>Allwmake</code> in <code>$WM_PROJECT_DIR</code> should now compile the current version without any errors.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Parameter Variation in OpenFOAM Using PyFoam]]></title>
+    <link href="http://jhoepken.github.io/blog/2012/01/22/parameter-variation-in-openfoam-using-pyfoam/"/>
+    <updated>2012-01-22T00:00:00+01:00</updated>
+    <id>http://jhoepken.github.io/blog/2012/01/22/parameter-variation-in-openfoam-using-pyfoam</id>
+    <content type="html"><![CDATA[<p>Performing parameter variations can be stressful, especially if some parameters
+have to be altered in various places in an OpenFOAM case. This is where the
+python modules of <a href="http://openfoamwiki.net/index.php/Contrib_PyFoam">PyFoam</a> come in quite handy. I assume, that you
+have a basic knowledge on how an OpenFOAM case is structured and that you are
+familiar with programming in python. If you need a brief refreshment of your
+python skills, you can pick <a href="http://wiki.python.org/moin/BeginnersGuide/Programmers">one of these tutorials</a>.</p>
+
+<!-- more -->
+
+
+<h2>1. Preparation</h2>
+
+<p>The first step is to choose a case to do a parameter variation on. For the sake of simplicity, I chose the lid driven cavity as an example. This can be found in the OpenFOAM tutorial folder  located at <code>$FOAM_TUTORIALS/incompressible/icoFoam/cavity</code>.
+To keep the original tutorial unaltered, we need to create a parent folder and copy the cavity tutorial case folder to that directory. Now we need to change to that directory. I chose my OpenFOAM user folder for that</p>
+
+<pre><code><div class="highlight"><pre><code class="language-bash" data-lang="bash">run
+mkdir cavityParameterStudy
+<span class="nb">cd </span>cavityParameterStudy
+cp -r <span class="nv">$FOAM_TUTORIALS</span>/incompressible/icoFoam/cavity cavity-template
+<span class="nb">cd </span>cavity-template</code></pre></div>
+</code></pre>
+
+<p>The current structure looks like this:</p>
+
+<pre><code><div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="p">|</span>-cavityParameterStudy
+<span class="p">|</span>---cavity-template</code></pre></div>
+</code></pre>
+
+<p>In the following, I will call the cavityParameterStudy folder &ldquo;parent folder&rdquo; and the cavity-template folder &ldquo;template folder&rdquo;.</p>
+
+<h2>2. Getting Started</h2>
+
+<p>The basic idea behind doing a parameter variation using PyFoam is to create a template case, clone that via a script and alter the respective parameters in that cloned case. We need to create the python script, that will do all the exhausting work for us. I am a vim fanboy, but please feel free to use whatever editor suites your need: <code>vim parameterVariation.py</code>
+Before doing anything serious, I do perform organisational steps inside the python script:</p>
+
+<pre><code><div class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">path</span>
+<span class="kn">from</span> <span class="nn">PyFoam.RunDictionary.SolutionDirectory</span> <span class="kn">import</span> <span class="n">SolutionDirectory</span>
+<span class="kn">from</span> <span class="nn">PyFoam.RunDictionary.ParsedParameterFile</span> <span class="kn">import</span> <span class="n">ParsedParameterFile</span>
+<span class="kn">from</span> <span class="nn">PyFoam.Basics.DataStructures</span> <span class="kn">import</span> <span class="n">Vector</span>
+
+<span class="n">templateCase</span> <span class="o">=</span> <span class="n">SolutionDirectory</span><span class="p">(</span><span class="s">&quot;cavity-template&quot;</span><span class="p">,</span> <span class="n">archive</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">paraviewLink</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span></code></pre></div>
+</code></pre>
+
+<p>Very brief explanation of the above lines:</p>
+
+<ul>
+<li>Line two imports a class that can handle an OpenFOAM case folder with all it&rsquo;s essential directories. It provides easy access to these folders and the particular dictionaries, as well as a method to clone that case to an other - not yet existing - OpenFOAM case.</li>
+<li>The PyFoam class, dealing with accessing and altering OpenFOAM dictionaries is imported in line three.</li>
+<li>As I am a lazy person, when it comes to tasks that can be simplified significantly by some piece of software, I import the Vector class of PyFoam as well. We will use it, when we alter the velocity boundary condition of the cavity.</li>
+<li>An instance of the imported SolutionDirectory is instantiated for the template folder, that contains the case we want to alter systematically.</li>
+</ul>
+
+
+<h2>3. Deciding which Parameters to vary</h2>
+
+<p>Within the scope of this tutorial, we will vary the tangential velocity at the top boundary of the cavity. To reduce the amount of typing, we let python calculate the respective velocities and to do so, an extra line must be added to the header:</p>
+
+<pre><code><div class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">from</span> <span class="nn">PyFoam.RunDictionary.SolutionDirectory</span> <span class="kn">import</span> <span class="n">SolutionDirectory</span>
+<span class="kn">from</span> <span class="nn">PyFoam.RunDictionary.ParsedParameterFile</span> <span class="kn">import</span> <span class="n">ParsedParameterFile</span>
+<span class="kn">from</span> <span class="nn">PyFoam.Basics.DataStructures</span> <span class="kn">import</span> <span class="n">Vector</span>
+
+<span class="c"># Add the following line</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">linspace</span></code></pre></div>
+</code></pre>
+
+<p>This imports the <a href="http://docs.scipy.org/doc/numpy/reference/generated/numpy.linspace.html">linspace function from numpy</a>, which divides an interval into an arbitrary amount of steps. This function is used as such:</p>
+
+<pre><code><div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">uTangential</span> <span class="o">=</span> <span class="n">linspace</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">uTangential</span>
+<span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="n">array</span><span class="p">([</span> <span class="mf">0.1</span><span class="p">,</span>  <span class="mf">0.2</span><span class="p">,</span>  <span class="mf">0.3</span><span class="p">,</span>  <span class="mf">0.4</span><span class="p">,</span>  <span class="mf">0.5</span><span class="p">,</span>  <span class="mf">0.6</span><span class="p">,</span>  <span class="mf">0.7</span><span class="p">,</span>  <span class="mf">0.8</span><span class="p">])</span></code></pre></div>
+</code></pre>
+
+<h2>4. Accessing the Boundary Conditions</h2>
+
+<p>What we&rsquo;ve learned so far is to import some packages from PyFoam and to create a
+numpy array with some velocities in it. The next major step is to access the
+boundary condition file for the velocity and to modify it according to our
+specifications. Before we do any modifications, we should clone the template into
+a new case:</p>
+
+<pre><code><div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">case</span> <span class="o">=</span> <span class="n">templateCase</span><span class="o">.</span><span class="n">cloneCase</span><span class="p">(</span><span class="s">&quot;testCase&quot;</span><span class="p">)</span></code></pre></div>
+</code></pre>
+
+<p>What does this do?</p>
+
+<ul>
+<li>Create a new folder on your disk, that is named <code>testCase</code>.</li>
+<li>Copy all <em>basic</em> files and folders from <code>cavity-template</code> over to
+<code>testCase</code>. This does not include log files, time-step folder and so on. Just <code>0/</code>, <code>constant/</code> and <code>system/</code>. Any other files and folders must be specified explicitly.</li>
+<li>Return a new SolutionDirectory object, that points to <code>testCase</code> and store
+it in case.</li>
+</ul>
+
+
+<p>The reason why to handle the path operations by means of PyFoam and not by manually access all required paths is simply because it is much less error prone, requires less typing and is much faster.</p>
+
+<p>The next step is to access the velocity boundary condition and alter the &ldquo;movingWall&rdquo; patch:</p>
+
+<pre><code><div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">velBC</span> <span class="o">=</span> <span class="n">ParsedParameterFile</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">case</span><span class="o">.</span><span class="n">name</span><span class="p">,</span><span class="s">&quot;0&quot;</span><span class="p">,</span> <span class="s">&quot;U&quot;</span><span class="p">))</span>
+<span class="n">velBC</span><span class="p">[</span><span class="s">&quot;boundaryField&quot;</span><span class="p">][</span><span class="s">&quot;movingWall&quot;</span><span class="p">][</span><span class="s">&quot;value&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">setUniform</span><span class="p">(</span><span class="n">uTangential</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">velBC</span><span class="o">.</span><span class="n">writeFile</span><span class="p">()</span></code></pre></div>
+</code></pre>
+
+<p>What it does, line by line:</p>
+
+<ol>
+<li>Create a <code>ParsedParameterFile</code> object for the velocity boundary condition file. This can be done for any other file as well, including <code>constant/</code> and <code>system/</code> files, if you would like to change some other parameters.</li>
+<li>Access the movingWall subdictionary in the boundaryField dictionary of the
+velocity boundary condition and set the value of the Dirichlet<sup id="fnref:1"><a href="#fn:1" rel="footnote">1</a></sup> boundary condition to be uniform for all faces on the patch and use the first tangential velocity, that was defined previously using the linspace expression.</li>
+<li>Write all changes to the boundary condition.</li>
+</ol>
+
+
+<h2>5. Using a loop</h2>
+
+<p>As the above lines do not account for changing the velocity multiple times, we employ a for loop around the <code>ParsedParameterFile</code> lines, so that the entire script should look like:</p>
+
+<pre><code><div class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">path</span>
+<span class="kn">from</span> <span class="nn">PyFoam.RunDictionary.SolutionDirectory</span> <span class="kn">import</span> <span class="n">SolutionDirectory</span>
+<span class="kn">from</span> <span class="nn">PyFoam.RunDictionary.ParsedParameterFile</span> <span class="kn">import</span> <span class="n">ParsedParameterFile</span>
+<span class="kn">from</span> <span class="nn">PyFoam.Basics.DataStructures</span> <span class="kn">import</span> <span class="n">Vector</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">linspace</span>
+
+<span class="n">uTangential</span> <span class="o">=</span> <span class="n">linspace</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>
+
+<span class="n">templateCase</span> <span class="o">=</span> <span class="n">SolutionDirectory</span><span class="p">(</span><span class="s">&quot;cavity-template&quot;</span><span class="p">,</span> <span class="n">archive</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">paraviewLink</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">uI</span> <span class="ow">in</span> <span class="n">uTangential</span><span class="p">:</span>
+<span class="n">case</span> <span class="o">=</span> <span class="n">templateCase</span><span class="o">.</span><span class="n">cloneCase</span><span class="p">(</span><span class="s">&quot;cavity-u</span><span class="si">%.1f</span><span class="s">&quot;</span> <span class="o">%</span><span class="n">uI</span><span class="p">)</span>
+<span class="n">velBC</span> <span class="o">=</span> <span class="n">ParsedParameterFile</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">case</span><span class="o">.</span><span class="n">name</span><span class="p">,</span><span class="s">&quot;0&quot;</span><span class="p">,</span> <span class="s">&quot;U&quot;</span><span class="p">))</span>
+<span class="n">velBC</span><span class="p">[</span><span class="s">&quot;boundaryField&quot;</span><span class="p">][</span><span class="s">&quot;movingWall&quot;</span><span class="p">][</span><span class="s">&quot;value&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">setUniform</span><span class="p">(</span><span class="n">Vector</span><span class="p">(</span><span class="n">uI</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="n">velBC</span><span class="o">.</span><span class="n">writeFile</span><span class="p">()</span></code></pre></div>
+</code></pre>
+
+<p>This script loops over all defined velocities, clones the template case and stores the correct velocity in the velocity boundary condition. At the current state of the tutorial, the cases must be started manually, though this can be automated fairly easy with <code>PyFoam.BasicRunner</code>. But this will be covered by an extra tutorial.</p>
+
+<h2>Contributors</h2>
+
+<ul>
+<li>Rudolf for bugfixes</li>
+</ul>
+
+<div class="footnotes">
+<hr/>
+<ol>
+<li id="fn:1">
+<p>Defines the value for a boundary (see <a href="https://en.wikipedia.org/wiki/Dirichlet_boundary_condition">wiki</a>)<a href="#fnref:1" rev="footnote">&#8617;</a></p></li>
+</ol>
+</div>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Plotting OpenFOAM Forces on the Fly]]></title>
+    <link href="http://jhoepken.github.io/blog/2010/09/14/remove-brackets-from-file/"/>
+    <updated>2010-09-14T00:00:00+02:00</updated>
+    <id>http://jhoepken.github.io/blog/2010/09/14/remove-brackets-from-file</id>
+    <content type="html"><![CDATA[<p>I usually use <a href="http://www.matplotlib.org">matplotlib</a> during post-processing for plotting x-y
+data, as the plots look nice and I can use my other python classes to generate
+and parse the data, which is quite nice.
+This works perfectly when the original data doesn&rsquo;t change, while a plot window
+is open, which is not the case for e.g. the forces on a patch that are sampled
+during a simulation, by a function object.
+For this purpose I use good old <a href="http://www.gnuplot.info">gnuplot</a>, which can be updated easily.</p>
+
+<p>The forces are stored in <code>forces/0/forces.dat</code> inside the particular case
+directory. One problem arises, though: The forces are not stored in a <code>gnuplot</code>
+friendly format but as nested vectors with round brackets, which <code>gnuplot</code> cannot
+process. These brackets must hence get removed somehow and if possible in an
+automatic fashion. The removing itself can be done using <code>sed</code>:</p>
+
+<pre><code><div class="highlight"><pre><code class="language-bash" data-lang="bash">sed -e <span class="s2">&quot;s/[(,)]//g&quot;</span> forces/0/forces.dat</code></pre></div>
+</code></pre>
+
+<p>This replaces any round brackets by nothing and prints the output to stdout. We
+can either pipe this output into a file and plot this file <strong>or</strong> use the output
+of <code>sed</code> directly in <code>gnuplot</code>. As the first way is not as elegant as the
+second, we&rsquo;ll just use the latter.</p>
+
+<pre><code><div class="highlight"><pre><code class="language-gnuplot" data-lang="gnuplot"><span class="k">plot</span> <span class="s">&#39;&amp;lt;sed -e &quot;s/[(,)]//g&quot; forces/0/forces.dat&#39;</span> <span class="nb">using</span> <span class="mi">1</span><span class="o">:</span><span class="mi">2</span> <span class="nb">with</span> <span class="n">lines</span></code></pre></div>
+</code></pre>
+
+<p>Whenever the plot is updated, the <code>sed</code> command is executed which in turn
+reads the latest forces data, removes the brackets and hands it back to
+<code>gnuplot</code>.</p>
+]]></content>
+  </entry>
+  
+</feed>

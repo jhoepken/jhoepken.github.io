@@ -5,12 +5,13 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Jens Höpken</title>
+  <title>Plotting OpenFOAM Forces on the Fly - Jens Höpken</title>
   <meta name="author" content="Jens Höpken">
 
   
-  <meta name="description" content="The 2.2 version of OpenFOAM was released on 6. March 2013 and after reading the changelog, I was keen to try it out.
-Especially due to the promised &hellip;">
+  <meta name="description" content="I usually use matplotlib during post-processing for plotting x-y
+data, as the plots look nice and I can use my other python classes to generate
+and &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -19,7 +20,7 @@ Especially due to the promised &hellip;">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://jhoepken.github.io">
+  <link rel="canonical" href="http://jhoepken.github.io/blog/2010/09/14/remove-brackets-from-file">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="Jens Höpken" type="application/atom+xml">
@@ -49,121 +50,15 @@ Especially due to the promised &hellip;">
 </ul>
 
 </nav>
-  <header role="banner"><hgroup>
-	
-  <h1><a href="/">Jens Höpken</a></h1>
-  
-    <h2>Author. Enthusiast. <a href="http://www.sourceflux.de">Sourceflux</a>.</h2>
-  
-</hgroup>
-
-</header> 
   
   <div id="main">
     <div id="content">
-      <div class="blog-index">
+      <div>
+<article class="hentry" role="article">
   
-  
-  
-    <article>
-      
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/03/14/building-openfoam-2.2.x/">Building OpenFOAM-2.2.x</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-03-14T00:00:00+01:00" pubdate data-updated="true"></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The 2.2 version of OpenFOAM was released on 6. March 2013 and after reading the changelog, I was keen to try it out.
-Especially due to the promised changes to <code>snappyHexMesh</code>.
-I tried to build the new version that is distributed via <a href="https://github.com/OpenFOAM/OpenFOAM-2.2.x">github</a> using the well known way of just changing into the <code>$WM_PROJECT_DIR</code>, executing <code>./Allwmake</code> and hoping for the best.
-Unfortunatly this didn&rsquo;t work out well, because the <code>libOpenFOAM</code> didn&rsquo;t compile properly:</p>
-
-<div class="highlight"><pre><code class="language-bash" data-lang="bash">primitives/triad/triad.C:36: error: expected initializer before <span class="s1">&#39;&lt;&#39;</span> token
-    primitives/triad/triad.C:39: error: expected initializer before <span class="s1">&#39;&lt;&#39;</span> token</code></pre></div>
-
-
-<p>After discussing this with my good friend Tomislav, he came up with a simple fix for this: Just remove the lines in <code>$FOAM_SRC/OpenFOAM/Make/files</code> that contain something with <em>triad</em> in it.
-You can either download the bugfix from <a href="https://gist.github.com/jhoepken/5186170">github</a> or generate it from scratch by commenting all lines that contain something with <em>triad</em>.</p>
-
-<p>Executing <code>Allwmake</code> in <code>$WM_PROJECT_DIR</code> should now compile the current version without any errors.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/01/22/parameter-variation-in-openfoam-using-pyfoam/">Parameter Variation in OpenFOAM Using PyFoam</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-01-22T00:00:00+01:00" pubdate data-updated="true"></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Performing parameter variations can be stressful, especially if some parameters
-have to be altered in various places in an OpenFOAM case. This is where the
-python modules of <a href="http://openfoamwiki.net/index.php/Contrib_PyFoam">PyFoam</a> come in quite handy. I assume, that you
-have a basic knowledge on how an OpenFOAM case is structured and that you are
-familiar with programming in python. If you need a brief refreshment of your
-python skills, you can pick <a href="http://wiki.python.org/moin/BeginnersGuide/Programmers">one of these tutorials</a>.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2012/01/22/parameter-variation-in-openfoam-using-pyfoam/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/09/14/remove-brackets-from-file/">Plotting OpenFOAM Forces on the Fly</a></h1>
+      <h1 class="entry-title">Plotting OpenFOAM Forces on the Fly</h1>
     
     
       <p class="meta">
@@ -186,7 +81,7 @@ python skills, you can pick <a href="http://wiki.python.org/moin/BeginnersGuide/
   </header>
 
 
-  <div class="entry-content"><p>I usually use <a href="http://www.matplotlib.org">matplotlib</a> during post-processing for plotting x-y
+<div class="entry-content"><p>I usually use <a href="http://www.matplotlib.org">matplotlib</a> during post-processing for plotting x-y
 data, as the plots look nice and I can use my other python classes to generate
 and parse the data, which is quite nice.
 This works perfectly when the original data doesn&rsquo;t change, while a plot window
@@ -215,23 +110,65 @@ second, we&rsquo;ll just use the latter.</p>
 reads the latest forces data, removes the brackets and hands it back to
 <code>gnuplot</code>.</p>
 </div>
+
+
+  <footer>
+    <p class="meta">
+      
   
+
+<span class="byline author vcard">Posted by <span class="fn">Jens Höpken</span></span>
+
+      
+
+
+
+
+
+
+
+
   
 
 
-    </article>
+<time datetime="2010-09-14T00:00:00+02:00" pubdate data-updated="true"></time>
+      
+
+<span class="categories">
   
-  <div class="pagination">
+    <a class='category' href='/blog/categories/posts/'>posts</a>
+  
+</span>
+
+
+    </p>
     
-    <a href="/blog/archives">Blog Archives</a>
-    
-  </div>
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://jhoepken.github.io/blog/2010/09/14/remove-brackets-from-file/" data-via="jhoepken" data-counturl="http://jhoepken.github.io/blog/2010/09/14/remove-brackets-from-file/" >Tweet</a>
+  
+  
+  
 </div>
+
+    
+    <p class="meta">
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/01/22/parameter-variation-in-openfoam-using-pyfoam/" title="Next Post: Parameter variation in OpenFOAM using PyFoam">Parameter variation in OpenFOAM using PyFoam &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
 <aside class="sidebar">
   
     
   
 </aside>
+
 
     </div>
   </div>
